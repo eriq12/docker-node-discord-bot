@@ -1,11 +1,14 @@
+version: "3.8"
 services:
-  discord-bot:
-    image: "node:16"
-    user: "node"
-    working_dir: /home/node/app
+  discord_bot:
+    build:
+      context: ./
+      target: dev
     volumes:
-      - .:/home/node/app
-    expose:
-      - "3000"
-    command: "node ./src/app.js"
-    
+      - .:/src
+    command: npm run start:dev
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DEBUG: nodejs-docker-express:*
