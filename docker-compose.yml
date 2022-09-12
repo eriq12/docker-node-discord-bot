@@ -1,0 +1,11 @@
+services:
+  discord-bot:
+    image: "node:16"
+    user: "node"
+    working_dir: /home/node/app
+    volumes:
+      - .:/home/node/app
+    expose:
+      - "3000"
+    command: "node ./src/app.js"
+    

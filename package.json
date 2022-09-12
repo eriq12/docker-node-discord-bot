@@ -1,0 +1,18 @@
+{
+  "name": "docker-node-discord-bot",
+  "version": "1.0.0",
+  "description": "A discord bot that is built to be inside of a docker container, using node.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eriq12/docker-node-discord-bot.git"
+  },
+  "author": "eriq12@gmail.com",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/eriq12/docker-node-discord-bot/issues"
+  },
+  "homepage": "https://github.com/eriq12/docker-node-discord-bot#readme"
+}
