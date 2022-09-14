@@ -4,9 +4,16 @@
  * Module dependencies.
  */
 
+// website
 var app = require('../app');
 var debug = require('debug')('docker-node-discord-bot:server');
 var http = require('http');
+
+// discord bot
+const path = require('path')
+require('dotenv').config({ path: path.resolve(__dirname, '../.env')})
+const {Client, GatewayIntentBits } = require('discord.js');
+const bot_token = process.env.DISCORD_TOKEN;
 
 /**
  * Get port from environment and store in Express.
@@ -88,3 +95,17 @@ function onListening() {
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+
+/** 
+ * discord bot launch
+ */
+// instance
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+
+// on ready code
+client.once('ready', () =>{
+    console.log('Ready!');
+});
+
+// login
+client.login(bot_token);
