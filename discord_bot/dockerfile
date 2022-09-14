@@ -1,0 +1,16 @@
+FROM node:18-alpine as base
+
+WORKDIR /src
+COPY package*.json /
+
+FROM base as production
+ENV NODE_ENV=production
+RUN npm ci
+COPY . /
+CMD ["node", "discord_bot"]
+
+FROM base as dev
+ENV NODE_ENV=development
+RUN npm install -g nodemon && npm install
+COPY . /
+CMD ["nodemon" "discord_bot"]
