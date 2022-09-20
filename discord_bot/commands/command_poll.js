@@ -3,7 +3,7 @@
 const { SlashCommandBuilder, ActionRowBuilder, SelectMenuBuilder } = require('discord.js');
 
 const name = 'poll';
-const optionValueNames = ['first', 'second', 'third', 'fourth'];
+const optionValueNames = ['first-option', 'second-option', 'third-option', 'fourth-option'];
 
 const data = new SlashCommandBuilder()
     .setName(name)
@@ -16,10 +16,12 @@ const data = new SlashCommandBuilder()
     .addStringOption( option =>
         option.setName(String(optionValueNames[0]))
             .setDescription(`The ${optionValueNames[0]} of the poll (Yes by default)`)
+            .setRequired(true)
     )
     .addStringOption( option =>
         option.setName(String(optionValueNames[1]))
             .setDescription(`The ${optionValueNames[1]} of the poll (No by default)`)
+            .setRequired(true)
     )
     .addStringOption( option =>
         option.setName(String(optionValueNames[2]))
@@ -35,9 +37,8 @@ async function action(interaction) {
     const pollName = optionsResults.getString('poll-name');
 
     const pollOptions = [];
-    for( let index = 0; index < optionValueNames.length; index++ ) {
-        const optionValName = optionValueNames[index];
-        const labelName = optionsResults.getString(String(optionValName));
+    for( const optionValName of optionValueNames ) {
+        const labelName = optionsResults.getString(optionValName);
         if( labelName ) {
             pollOptions.push(
                 {
@@ -48,13 +49,6 @@ async function action(interaction) {
         }
     }
 
-    if( pollOptions.length === 0 ) {
-        pollOptions.push({label: "Yes", value: optionValueNames[0]})
-        pollOptions.push({label: "No", value: optionValueNames[1]})
-    }
-
-    // derived from https://www.reddit.com/r/Discordjs/comments/vhm6o5/is_it_possible_to_loop_an_addoptions_to_a_select/
-    // what ever action you want to do
     const dropDownMenu = new SelectMenuBuilder()
         .setCustomId(pollName)
         .setOptions(pollOptions)

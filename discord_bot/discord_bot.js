@@ -31,12 +31,15 @@ client.once('ready', () => {
 
 // command responses
 client.on('interactionCreate', async interaction => {
-    if(!interaction.isChatInputCommand()) return;
+    if(interaction.isChatInputCommand()){
 
-    const { commandName } = interaction;
+        const { commandName } = interaction;
 
-    if ( commandActions.has(commandName) ) {
-        await commandActions.get(commandName)(interaction);
+        if ( commandActions.has(commandName) ) {
+            await commandActions.get(commandName)(interaction);
+        }
+    } else if (interaction.isSelectMenu()){
+        console.log(interaction);
     }
 });
 
