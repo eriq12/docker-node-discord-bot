@@ -2,3 +2,4 @@
 .gitignore
 node_modules
 command_deployer.js
+sql.env

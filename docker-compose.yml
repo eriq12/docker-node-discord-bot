@@ -24,3 +24,16 @@ services:
     environment:
       NODE_ENV: development
       DEBUG: nodejs-docker-express:*
+  db:
+    container_name: database
+    image: mysql
+    restart: always
+    env_file: 
+      - ./db/sql.env
+    ports:
+      - "3308:3306"
+  db-admin:
+    container_name: db-admin
+    image: adminer
+    ports:
+      - "8080:8080"
