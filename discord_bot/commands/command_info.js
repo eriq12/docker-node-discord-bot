@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 
 // changing user to just info and combines server and user
 // made following the discord.js guide
@@ -24,14 +24,18 @@ const data = new SlashCommandBuilder()
 async function action(interaction) {
     // what ever action you want to do
     if (interaction.options.getSubcommand() == 'user'){
-        const user = interaction.options.getUser('target');
-        if(user){
-            await interaction.reply(`Username: ${user.tag}\nID: ${user.id}`);
-        } else {
-            await interaction.reply(`Your tag: ${interaction.user.tag}\nYour id: ${interaction.user.id}`);
+        let user = interaction.options.getUser('target');
+        if(!user){
+            user = interaction.user
         }
+        await interaction.reply(`Username: ${user.tag}\nID: ${user.id}`);
     } else if (interaction.options.getSubcommand() == 'server'){
-        await interaction.reply(`Server name: ${interaction.guild.name}\nTotal members: ${interaction.guild.memberCount}`);
+        const guild = interaction.guild;
+        const serverEmbed = new EmbedBuilder()
+            .setTitle(guild.name)
+            .setDescription(`Total members: ${guild.memberCount}`)
+            .setThumbnail(guild.iconURL())
+        await interaction.reply({ embeds: [serverEmbed] });
     }
 }
 
