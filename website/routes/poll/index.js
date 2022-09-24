@@ -18,15 +18,15 @@ router.get('/results', function( req, res ) {
         res.status(200).end(JSON.stringify(
             {
                 success: true,
-                id: poll_name,
+                poll_name: poll_name,
                 poll_option_names: poll_data.option_names,
                 poll_results: poll_data.tally_all()
             }, null, 3));
     } else {
-        res.end(JSON.stringify(
+        res.status(400).end(JSON.stringify(
             {
                 success: false,
-                id: poll_name,
+                poll_name: poll_name,
                 poll_option_names: null,
                 poll_results: null
             }, null, 3));
@@ -34,12 +34,12 @@ router.get('/results', function( req, res ) {
 });
 
 router.post('/create', function ( req, res ){
-    const {name, option_names} = req.body;
-    console.log(`Poll Name: ${name}\nPoll Option Names: ${option_names}`);
-    if(!polls_cache.has(name) && option_names.length > 1 && option_names.length <= 4){
-        poll_info = new PollData(name, option_names);
-        polls_cache.set(name, poll_info);
-        res.sendStatus(202);
+    const {poll_name, option_names} = req.body;
+    console.log(`Poll Name: ${poll_name}\nPoll Option Names: ${option_names}`);
+    if(!polls_cache.has(poll_name) && option_names.length > 1 && option_names.length <= 4){
+        poll_info = new PollData(poll_name, option_names);
+        polls_cache.set(poll_name, poll_info);
+        res.sendStatus(200);
     } else {
         res.sendStatus(409);
     }
@@ -50,11 +50,11 @@ router.post('/vote', function ( req, res ) {
     if(poll_name && polls_cache.has(poll_name)){
         const poll = polls_cache.get(poll_name);
         if(poll.add_tally(user_id, option_number)){
-            res.sendStatus(202);
+            res.sendStatus(200);
             return;
         }
     }
-    res.sendStatus(404);
+    res.sendStatus(400);
 });
 
 module.exports = router;

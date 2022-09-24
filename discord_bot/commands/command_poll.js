@@ -1,7 +1,8 @@
 //To deploy more commands, follow the following format:
 
-const { SlashCommandBuilder, ActionRowBuilder, SelectMenuBuilder } = require('discord.js');
+const { SlashCommandBuilder, ActionRowBuilder, SelectMenuBuilder, EmbedBuilder } = require('discord.js');
 const axios = require('axios');
+const pollServer = "http://website:3000";
 
 const name = 'poll';
 const optionValueNames = ['first-option', 'second-option', 'third-option', 'fourth-option'];
@@ -66,6 +67,7 @@ data.addSubcommand(
 
 
 async function action(interaction) {
+    await interaction.deferReply();
     const optionsResults = interaction.options;
     const pollName = optionsResults.getString('poll-name');
     const subcommand = optionsResults.getSubcommand();
@@ -74,52 +76,85 @@ async function action(interaction) {
         for( const optionValName of optionValueNames ) {
             const labelName = optionsResults.getString(optionValName);
             if( labelName ) {
-                pollOptions.push(
-                    {
-                        label: labelName,
-                        value: optionValName
-                    }
-                );
+                pollOptions.push(labelName);
             }
         }
-
-        const dropDownMenu = new SelectMenuBuilder()
-            .setCustomId(pollName)
-            .setOptions(pollOptions)
-        /*
-        for( const optionName in optionValueNames ) {
-            const optionLabel = interaction.options.getString(optionName);
-            if( optionLabel ){
-                dropDownMenu.addOptions({
-                    label: Label,
-                    description: `Select ${optionName}`,
-                    value: optionName
-                });
-            }
-        }
-        */
-        const row = new ActionRowBuilder().addComponents(dropDownMenu);
-        await interaction.reply({ content: `${pollName}`, components: [row] });
+        let response_msg = "Unable to access poll servers.";
+        await axios.post(`${pollServer}/poll/create`, { poll_name: pollName, option_names: pollOptions})
+            .then(function (response) {
+                response_msg = `Poll created of name ${pollName}`
+            })
+            .catch(function (error) {
+                const status_code = error.response.status;
+                if(status_code === 409){
+                    response_msg = "Error: Duplicate poll."
+                } else {
+                    console.log(`Error:${status_code}`);
+                    response_msg = 'Unable to access servers, please try again later.';
+                }
+            })
+        await interaction.editReply({ content: response_msg, ephemeral: true });
     }
     else if ( subcommand === 'vote' ) {
-        try {
-            const response = await axios.get(`http://website:3000/poll/results?id=${pollName}`);
-            const poll_data = response.data;
-            const select_data = Array.from(poll_data.poll_option_names, (v,i) => ({ label: v, value: optionValueNames[i] }));
-            console.log(poll_data);
-            const dropDownMenu = new SelectMenuBuilder()
-                .setCustomId(poll_data.id)
-                .setOptions(select_data)
-            const row = new ActionRowBuilder().addComponents(dropDownMenu);
-            await interaction.reply({ content: `${pollName}`, components: [row] });
-        }
-        catch {
-            await interaction.reply({content: 'Poll not found.', ephemeral: true });
-            return;
-        }
+        let response_msg = {};
+        await axios.get(`${pollServer}/poll/results?id=${pollName}`)
+            .then(function(response){
+                const poll_data = response.data;
+                const select_data = Array.from(poll_data.poll_option_names, (v,i) => ({ label: v, value: optionValueNames[i] }));
+                console.log(poll_data);
+                const dropDownMenu = new SelectMenuBuilder()
+                    .setCustomId(poll_data.poll_name)
+                    .setOptions(select_data)
+                const row = new ActionRowBuilder().addComponents(dropDownMenu);
+                response_msg.content=pollName
+                response_msg.components = [row];
+            })
+            .catch(function(error){
+                const status_code = (error.response)?error.response.status:error.status;
+                if(status_code === 400 ){
+                    response_msg.content = 'Poll not found.';
+                    response_msg.ephemeral = true;
+                } else {
+                    console.log(`Error:${status_code}`);
+                    response_msg.content = 'Unable to access servers, please try again later.';
+                    response_msg.ephemeral = true;
+                }
+            })
+        await interaction.editReply(response_msg);
+    }
+    else if ( subcommand === 'result') {
+        let response_msg = {};
+        const response = await axios.get(`${pollServer}/poll/results?id=${pollName}`)
+            .then(function(response){
+                const poll_data = response.data;
+                console.log(poll_data);
+                const fields = Array.from(
+                    poll_data.poll_option_names, 
+                    (element, index) =>
+                        ({ name: element, value: String(poll_data.poll_results[index])})
+                );
+                console.log(fields);
+                const poll_results_embed = new EmbedBuilder()
+                    .setTitle(poll_data.poll_name)
+                    .addFields(fields);
+                response_msg.embeds = [poll_results_embed];
+            })
+            .catch(function(error){
+                const status_code = error.response.status;
+                if(status_code === 400 ){
+                    response_msg.content = 'Poll not found.';
+                    response_msg.ephemeral = true;
+                } else {
+                    console.log(`Error:${status_code}`);
+                    response_msg.content = 'Unable to access servers, please try again later.';
+                    response_msg.ephemeral = true;
+                }
+            })
+        await interaction.editReply(response_msg);
     }
 }
 
 exports.name = name;
 exports.action = action;
 exports.data = data;
+exports.optionValueNames = optionValueNames;

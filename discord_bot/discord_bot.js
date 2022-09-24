@@ -4,6 +4,8 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 const fs = require('node:fs');
+const axios = require('axios');
+const pollServer = "http://website:3000";
 
 // most follows the guide provided in the link provided:
 // https://discordjs.guide/creating-your-bot/
@@ -15,7 +17,12 @@ const token = process.env.DISCORD_TOKEN;
 const commandActions = new Map();
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 
-console.log(commandFiles);
+process.on('unhandledRejection', error =>{
+    console.error('Unhandled promise rejection: ', error);
+});
+
+
+const { optionValueNames } = require('./commands/command_poll.js');
 
 // process files (oh a for each loop it seems)
 for ( const file of commandFiles ) {
@@ -39,7 +46,23 @@ client.on('interactionCreate', async interaction => {
             await commandActions.get(commandName)(interaction);
         }
     } else if (interaction.isSelectMenu()){
-        console.log(interaction);
+        await interaction.deferReply({ephemeral:true});
+        
+        let response_msg = "Unable to access poll servers.";
+        const [selected_value] = interaction.values;
+        await axios.post(`${pollServer}/poll/vote`,
+            {
+                poll_name: interaction.customId,
+                user_id: interaction.user.id,
+                option_number: optionValueNames.findIndex((element) => element === selected_value)
+            })
+            .then(function (response) {
+                response_msg = "Vote accepted.";
+            })
+            .catch(function (error) {
+                console.log(error);
+            })
+        await interaction.editReply({ content: response_msg, ephemeral:true });
     }
 });
 
