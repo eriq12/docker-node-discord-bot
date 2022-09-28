@@ -2,6 +2,8 @@
 
 const { SlashCommandBuilder, ActionRowBuilder, SelectMenuBuilder, EmbedBuilder } = require('discord.js');
 const axios = require('axios');
+const instance = axios.create();
+instance.defaults.timeout = 10000;
 const pollServer = "http://website:3000";
 
 const name = 'poll';
@@ -69,8 +71,10 @@ data.addSubcommand(
 async function action(interaction) {
     await interaction.deferReply();
     const optionsResults = interaction.options;
+    const guild_id = interaction.guild.id;
     const pollName = optionsResults.getString('poll-name');
     const subcommand = optionsResults.getSubcommand();
+    let response_msg = {};
     if ( subcommand === 'create' ) {
         const pollOptions = [];
         for( const optionValName of optionValueNames ) {
@@ -79,25 +83,25 @@ async function action(interaction) {
                 pollOptions.push(labelName);
             }
         }
-        let response_msg = "Unable to access poll servers.";
-        await axios.post(`${pollServer}/poll/create`, { poll_name: pollName, option_names: pollOptions})
+        response_msg.content = "Unable to access poll servers.";
+        await axios.post(`${pollServer}/poll/create`, { guild_id:guild_id, poll_name: pollName, option_names: pollOptions})
             .then(function (response) {
-                response_msg = `Poll created of name ${pollName}`
+                response_msg.content = `Poll created of name ${pollName}`
             })
             .catch(function (error) {
-                const status_code = error.response.status;
+                const status_code = (error.response !== undefined && error.response.status !== undefined)?error.response.status:404;
                 if(status_code === 409){
-                    response_msg = "Error: Duplicate poll."
+                    response_msg.content = "Error: Duplicate poll."
                 } else {
-                    console.log(`Error:${status_code}`);
-                    response_msg = 'Unable to access servers, please try again later.';
+                    console.log(`Error:${error.message}`);
+                    response_msg.content = 'Unable to access servers, please try again later.';
                 }
             })
-        await interaction.editReply({ content: response_msg, ephemeral: true });
+        response_msg.ephemeral = true;
+        await interaction.editReply(response_msg);
     }
     else if ( subcommand === 'vote' ) {
-        let response_msg = {};
-        await axios.get(`${pollServer}/poll/results?id=${pollName}`)
+        await instance.get(`${pollServer}/poll/results?id=${pollName}&guild_id=${guild_id}`)
             .then(function(response){
                 const poll_data = response.data;
                 const select_data = Array.from(poll_data.poll_option_names, (v,i) => ({ label: v, value: optionValueNames[i] }));
@@ -110,7 +114,7 @@ async function action(interaction) {
                 response_msg.components = [row];
             })
             .catch(function(error){
-                const status_code = (error.response)?error.response.status:error.status;
+                const status_code = (error.response !== undefined && error.response.status !== undefined)?error.response.status:404;
                 if(status_code === 400 ){
                     response_msg.content = 'Poll not found.';
                     response_msg.ephemeral = true;
@@ -123,8 +127,7 @@ async function action(interaction) {
         await interaction.editReply(response_msg);
     }
     else if ( subcommand === 'result') {
-        let response_msg = {};
-        const response = await axios.get(`${pollServer}/poll/results?id=${pollName}`)
+        await instance.get(`${pollServer}/poll/results?id=${pollName}&guild_id=${guild_id}`)
             .then(function(response){
                 const poll_data = response.data;
                 console.log(poll_data);
@@ -140,7 +143,7 @@ async function action(interaction) {
                 response_msg.embeds = [poll_results_embed];
             })
             .catch(function(error){
-                const status_code = error.response.status;
+                const status_code = (error.response !== undefined && error.response.status !== undefined)?error.response.status:404;
                 if(status_code === 400 ){
                     response_msg.content = 'Poll not found.';
                     response_msg.ephemeral = true;

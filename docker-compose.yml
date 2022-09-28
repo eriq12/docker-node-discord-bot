@@ -10,6 +10,8 @@ services:
     command: npm run start:dev
     ports:
       - "3000:3000"
+    env_file:
+      - ./website/webserver.env
     environment:
       NODE_ENV: development
       DEBUG: nodejs-docker-express:*
@@ -27,11 +29,10 @@ services:
   db:
     container_name: database
     image: mysql
+    command: --authentication-policy=mysql_native_password
     restart: always
     env_file: 
       - ./db/sql.env
-    ports:
-      - "3308:3306"
   db-admin:
     container_name: db-admin
     image: adminer

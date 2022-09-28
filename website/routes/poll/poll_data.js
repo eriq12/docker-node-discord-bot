@@ -1,5 +1,8 @@
-exports.PollData = function(poll_name, optionNames){
+
+exports.PollData = function(guild_id, poll_name, hash, optionNames){
     this.name = poll_name;
+    this.guild_id = guild_id;
+    this.hash = hash;
     this.user_votes = new Map();
     this.amount_options = optionNames.length;
     this.option_names = optionNames;

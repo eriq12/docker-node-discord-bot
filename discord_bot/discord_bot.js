@@ -52,6 +52,7 @@ client.on('interactionCreate', async interaction => {
         const [selected_value] = interaction.values;
         await axios.post(`${pollServer}/poll/vote`,
             {
+                guild_id: interaction.guild.id,
                 poll_name: interaction.customId,
                 user_id: interaction.user.id,
                 option_number: optionValueNames.findIndex((element) => element === selected_value)
@@ -60,7 +61,7 @@ client.on('interactionCreate', async interaction => {
                 response_msg = "Vote accepted.";
             })
             .catch(function (error) {
-                console.log(error);
+                console.log(error.message);
             })
         await interaction.editReply({ content: response_msg, ephemeral:true });
     }

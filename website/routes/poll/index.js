@@ -1,60 +1,84 @@
 var express = require('express');
-var { PollData } = require('./poll_data.js');
 var router = express.Router();
+const path = require('path');
+const { GetPoll, RegisterPollVote, CreatePoll } = require('./sql_poll');
 
-const polls_cache = new Map();
 
 router.get('/', function( req, res ) {
-    res.send('Welcome to the poll area, you are not in the right place.')
+    res.send('Welcome to the poll area, you are not in the right place.');
 });
 
-router.get('/results', function( req, res ) {
-    poll_name = req.query.id;
-    res.setHeader('Content-Type', 'application/json');
-    const poll_exists = polls_cache.has(poll_name)
-    console.log(`req = ${req}\nquerry.id: ${poll_name}\nexists?: ${poll_exists}`);
-    if(poll_name && poll_exists){
-        const poll_data = polls_cache.get(poll_name);
-        res.status(200).end(JSON.stringify(
-            {
-                success: true,
-                poll_name: poll_name,
-                poll_option_names: poll_data.option_names,
-                poll_results: poll_data.tally_all()
-            }, null, 3));
-    } else {
-        res.status(400).end(JSON.stringify(
-            {
-                success: false,
-                poll_name: poll_name,
-                poll_option_names: null,
-                poll_results: null
-            }, null, 3));
+router.get('/results', async function( req, res ) {
+    const poll_name = req.query.id;
+    const guild_id = req.query.guild_id;
+    console.log(`Webserver Query:\nPoll Name: ${poll_name}\nGuild id: ${guild_id}`);
+    if(!(poll_name && guild_id)){
+        res.sendStatus(404);
+        return;
     }
+    (async () => {
+        try{
+            const poll_data = await GetPoll(poll_name, guild_id);
+            res.setHeader('Content-Type', 'application/json');
+            if(poll_data){
+                res.status(200).end(JSON.stringify(
+                    {
+                        success: true,
+                        poll_name: poll_name,
+                        poll_option_names: poll_data.option_names,
+                        poll_results: poll_data.tally_all()
+                    }, null, 3 ));
+            } else {
+                res.status(400).end(JSON.stringify(
+                    {
+                        success: false,
+                        poll_name: poll_name,
+                        poll_option_names: null,
+                        poll_results: null
+                    }, null, 3));
+            }
+        } catch (err) {
+            console.log(`ERROR: ${err}`);
+            res.sendStatus(500);
+        }
+    })();
 });
 
 router.post('/create', function ( req, res ){
-    const {poll_name, option_names} = req.body;
-    console.log(`Poll Name: ${poll_name}\nPoll Option Names: ${option_names}`);
-    if(!polls_cache.has(poll_name) && option_names.length > 1 && option_names.length <= 4){
-        poll_info = new PollData(poll_name, option_names);
-        polls_cache.set(poll_name, poll_info);
-        res.sendStatus(200);
-    } else {
-        res.sendStatus(409);
-    }
+    const {guild_id, poll_name, option_names} = req.body;
+    console.log(`Guild ID: ${guild_id}\nPoll Name: ${poll_name}\nPoll Option Names: ${option_names}`);
+    (async () => {
+        try{
+            const results = await CreatePoll(guild_id, poll_name, option_names);
+            if(results){
+                res.sendStatus(200);
+            } else {
+                res.sendStatus(409);
+            }
+        } catch (err) {
+            console.log(`ERROR: ${err.message}`);
+            res.sendStatus(500);
+        }
+    })();
 });
 
-router.post('/vote', function ( req, res ) {
-    const { poll_name, user_id, option_number } = req.body;
-    if(poll_name && polls_cache.has(poll_name)){
-        const poll = polls_cache.get(poll_name);
-        if(poll.add_tally(user_id, option_number)){
-            res.sendStatus(200);
-            return;
+router.post('/vote', async function ( req, res ) {
+    //console.log(`Request body:\n${JSON.stringify(req.body)}`);
+    const { guild_id, poll_name, user_id, option_number } = req.body;
+    (async () =>{
+        try {
+            const vote_results = await RegisterPollVote(guild_id, poll_name, user_id, option_number);
+            //console.log(`Obtained Results:\n${vote_results}`);
+            if(vote_results){
+                res.sendStatus(200);
+            } else {
+                res.sendStatus(400);
+            }
+        } catch (err) {
+            console.log(`ERROR: ${err.message}`);
+            res.sendStatus(500);
         }
-    }
-    res.sendStatus(400);
+    })();
 });
 
 module.exports = router;
