@@ -10,7 +10,6 @@ const fs = require('node:fs');
 // somehow using clientId and guildId in the json file did not work
 // resulting in using env variables instead
 const clientId = process.env.CLIENT_ID;
-const guildId = process.env.GUILD_ID;
 
 // commands and command data
 //      use const as the object pointer can't be reset to someplace else, but still can be modified
@@ -52,7 +51,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
         console.log(`Started refreshing ${commands.length} application (/) commands.`);
 
         const data = await rest.put(
-            Routes.applicationGuildCommands(clientId, guildId),
+            Routes.applicationCommands(clientId),
             { body : commands }
         );
         console.log(`Successfully reloaded ${data.length} application (/) commands.`);

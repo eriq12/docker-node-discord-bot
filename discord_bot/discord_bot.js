@@ -2,6 +2,14 @@
 // https://stackoverflow.com/questions/69228784/discord-js-cant-launch-bot-with-process-env-on-the-server-with-forever-but-it
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+const token = process.env.DISCORD_TOKEN;
+
+// check for environment
+(() => {
+    if(token === undefined){
+        throw 'Environment variable DISCORD_TOKEN is undefined.';
+    }
+})();
 
 const fs = require('node:fs');
 const axios = require('axios');
@@ -11,7 +19,6 @@ const pollServer = "http://website:3000";
 // https://discordjs.guide/creating-your-bot/
 // discord.js libraries
 const { Client, GatewayIntentBits, IntegrationApplication } = require('discord.js');
-const token = process.env.DISCORD_TOKEN;
 
 // get the filenames for commands
 const commandActions = new Map();

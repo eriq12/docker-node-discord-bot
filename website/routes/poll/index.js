@@ -1,6 +1,5 @@
 var express = require('express');
 var router = express.Router();
-const path = require('path');
 const { GetPoll, RegisterPollVote, CreatePoll } = require('./sql_poll');
 
 
@@ -11,7 +10,7 @@ router.get('/', function( req, res ) {
 router.get('/results', async function( req, res ) {
     const poll_name = req.query.id;
     const guild_id = req.query.guild_id;
-    console.log(`Webserver Query:\nPoll Name: ${poll_name}\nGuild id: ${guild_id}`);
+    //console.log(`Webserver Query:\nPoll Name: ${poll_name}\nGuild id: ${guild_id}`);
     if(!(poll_name && guild_id)){
         res.sendStatus(404);
         return;
@@ -46,7 +45,7 @@ router.get('/results', async function( req, res ) {
 
 router.post('/create', function ( req, res ){
     const {guild_id, poll_name, option_names} = req.body;
-    console.log(`Guild ID: ${guild_id}\nPoll Name: ${poll_name}\nPoll Option Names: ${option_names}`);
+    //console.log(`Guild ID: ${guild_id}\nPoll Name: ${poll_name}\nPoll Option Names: ${option_names}`);
     (async () => {
         try{
             const results = await CreatePoll(guild_id, poll_name, option_names);
