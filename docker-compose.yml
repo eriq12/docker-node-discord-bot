@@ -1,14 +1,40 @@
 version: "3.8"
 services:
-  discord_bot:
+  website:
+    container_name: website
     build:
-      context: ./
+      context: ./website
       target: dev
     volumes:
-      - .:/src
+      - ./website/:/src
     command: npm run start:dev
     ports:
       - "3000:3000"
+    env_file:
+      - ./website/webserver.env
     environment:
       NODE_ENV: development
       DEBUG: nodejs-docker-express:*
+  discord-bot:
+    container_name: bot
+    build:
+      context: ./discord_bot
+      target: dev
+    volumes:
+      - ./discord_bot:/src
+    command: npm run start:dev
+    environment:
+      NODE_ENV: development
+      DEBUG: nodejs-docker-express:*
+  db:
+    container_name: database
+    image: mysql
+    command: --authentication-policy=mysql_native_password
+    restart: always
+    env_file: 
+      - ./db/sql.env
+  db-admin:
+    container_name: db-admin
+    image: adminer
+    ports:
+      - "8080:8080"
