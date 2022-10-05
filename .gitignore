@@ -58,6 +58,7 @@ typings/
 .env
 sql.env
 webserver.env
+discordbot.env
 
 # next.js build output
 .next

@@ -1,10 +1,10 @@
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../../webserver.env') });
+// libraries
 const { PollData } = require('./poll_data.js');
-const {createHash} = require('crypto');
+const { createHash } = require('crypto');
 const MAX_OPTIONS = 4;
 const mysql = require('mysql');
 
+// environement variables required
 const {SQL_USER, SQL_PASS, SQL_DATABASE, SQL_POLL_TABLE, SQL_VOTE_TABLE} = process.env;
 
 // check for environment variables
@@ -18,7 +18,7 @@ const {SQL_USER, SQL_PASS, SQL_DATABASE, SQL_POLL_TABLE, SQL_VOTE_TABLE} = proce
     }
 })();
 
-// the queries to create the tables
+// the preset queries to create the tables
 
 // should probably in the future scale this with MAX_OPTIONS, but given how I have my discord command, leaving as is.
 const q_create_polls_table = `CREATE TABLE IF NOT EXISTS ${SQL_POLL_TABLE} (
@@ -58,8 +58,13 @@ var pool = mysql.createPool({
     database: SQL_DATABASE
 });
 
-// sorta wrapper function to avoid the querry after fatal error stuff
+/**
+ * wrapper function to avoid the querry after fatal error stuff
+ * @param actionAsync callback function to call, can include multiple queries to sql database (will take a while though if done)
+ * @return results from callback function
+ */
 async function UsePooledConnectionAsync(actionAsync) {
+    // try to get connection
     const connection = await new Promise((resolve, reject) =>{
         pool.getConnection((ex, connection) => {
             if (ex){
@@ -70,6 +75,7 @@ async function UsePooledConnectionAsync(actionAsync) {
             }
         });
     });
+    // then try with connection to first check the regular tables used, then do callback function
     try {
         // create the required tables if needed before performing the callbacks
         // though will result in taking a longer time if not created, resulting in discord bot returning in cannot connect.
@@ -81,7 +87,13 @@ async function UsePooledConnectionAsync(actionAsync) {
     }
 }
 
-// function for ease, as 
+/**
+ * function for ease without needing much for the full part for mysql querry
+ * Note: MUST BE USED INSIDE UsePooledConnectionAsync function
+ * @param {*} connection the connection obtained via the UsePooledConnectionAsync
+ * @param {*} query_prompt the mysql query desired to be executed
+ * @returns the response from the mysql querry (the results portion)
+ */
 async function Query(connection, query_prompt){
     return await new Promise((resolve, reject) => {
         connection.query(query_prompt, (err, results) => {
@@ -94,17 +106,26 @@ async function Query(connection, query_prompt){
     });
 }
 
+// map to hold the polls
+// key: a tuple of (poll_name, guild_id)
+// value: a poll_data object containing poll data
 const polls_cache = new Map();
 
-
-
 // helper methods
+
+/**
+ * helper method to get poll (will check cache then database if cache miss)
+ * @param {*} poll_name name of the poll
+ * @param {*} guild_id id of the associated guild of the poll
+ * @returns an object poll_data of the poll whose poll_name and guild_id combination matches the parameters
+ */
 async function GetPoll(poll_name, guild_id) {
     if(poll_name === undefined || guild_id === undefined || poll_name === null || guild_id === null) return null;
     // check cache
     if(polls_cache.has((poll_name, guild_id))){
         return polls_cache.get((poll_name, guild_id));
     }
+    // cache miss, checking database...
     let poll = null;
     const hash = ComputeSHA256(poll_name + guild_id);
     //console.log(`Poll Name: ${poll_name}\nGuild ID: ${guild_id}\nHash: ${hash}`);
@@ -137,28 +158,43 @@ async function GetPoll(poll_name, guild_id) {
     });
 }
 
+/**
+ * Helper method to register a vote under the specified poll
+ * @param {*} guild_id id of the guild where the poll is taking place
+ * @param {*} poll_name name of the poll
+ * @param {*} user_id id of the user casting the vote
+ * @param {*} vote_option option which the vote selects
+ * @returns true if vote was submitted, false if incorrect
+ */
 async function RegisterPollVote(guild_id, poll_name, user_id, vote_option) {
     const poll = await GetPoll(poll_name, guild_id);
-    //console.log(`Got poll: ${poll}`);
-    // if valid input, update to database
+    // try updating cache
     if( !(poll && poll.add_tally(user_id, vote_option)) ){
+        // invalid
         return false;
     }
+    // if valid input, update to database
     const poll_guild_hash = ComputeSHA256(poll_name+guild_id);
     const user_poll_guild_hash = ComputeSHA256(user_id+poll_guild_hash);
     let query_vote = `INSERT INTO ${SQL_VOTE_TABLE} (user_id, poll_guild_hash, user_poll_guild_hash, vote_option) VALUES (\'${user_id}\', \'${poll_guild_hash}\', \'${user_poll_guild_hash})\', ${vote_option}) ON DUPLICATE KEY UPDATE vote_option = ${vote_option};`  
-    //console.log(`Sending query to add vote:\n${query_vote}`);
-    return await UsePooledConnectionAsync( async connection => {
-        const vote_results = await Query(connection, query_vote);
-        //console.log(`Vote Results:\n${vote_results}`);
-        return (vote_results.affectedRows && vote_results.affectedRows > 0);
+    // no need to wait for response, just updating backend database
+    UsePooledConnectionAsync( async connection => {
+        await Query(connection, query_vote);
     });
+    return true;
 }
 
+/**
+ * Helper method to create poll
+ * @param {*} guild_id id of guild (server) associated with poll
+ * @param {*} poll_name name of poll
+ * @param {*} option_names an array of the names for the options
+ * @returns true if created, false if incorrect parameters or duplicate poll in guild (server)
+ */
 async function CreatePoll(guild_id, poll_name, option_names){
     // check if poll exists
     // check cache
-    let exists_in_cache = polls_cache.has(poll_name);
+    let exists_in_cache = polls_cache.has((poll_name, guild_id));
     if( exists_in_cache || option_names.length > MAX_OPTIONS || 2 > option_names.length ) {
         console.log(`Invalid option length (${option_names.length}) or exists in cache (${exists_in_cache}).`)
         return false;
