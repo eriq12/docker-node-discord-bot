@@ -43,7 +43,7 @@ To avoid any issues, please leave the environment variable names as all caps, an
 the cases when coping over the desired variable values, for example the Discord token value.
 
 #### command_deployer.js
-discord_bot/.env
+./discordbot.env
 * DISCORD_TOKEN
   * The secret token that you can get as described above in the bot application section.
 * CLIENT_ID
@@ -56,15 +56,25 @@ discord_bot/.env
 
 
 #### full container
-discord_bot/.env
-* DISCORD_TOKEN
-* CLIENT_ID
-* GUILD_ID
-db/sql.env
-* MYSQL_ROOT_PASSWORD
-  * The password that you desire to be for root.
-* MYSQL_DATABASE
-  * The name of the database you wish to use. (not currently in use)
+* ./discordbot.env
+  * DISCORD_TOKEN
+  * CLIENT_ID
+  * GUILD_ID
+* ./sql_root.env
+  * MYSQL_ROOT_PASSWORD
+    * The password that you desire to be for root.
+* ./sql_db.env
+  * MYSQL_DATABASE
+    * The name of the database you wish to use.
+  * MYSQL_POLL_TABLE
+    * The name of table for holding data about the polls.
+  * MYSQL_VOTE_TABLE
+    * The name of table for holding data about individual votes.
+* ./sql_user.env
+  * MYSQL_USER
+    * The username for the user that the webserver will use.
+  * MYSQL_PASS
+    * The password for the user that the webserver will use.
 ## How to run:
 ### Register commands
 To have the current commands registered on your Discord server (as I do not have the commands registered globally) you will need to execute the following line when within the discord_bot directory (requires node.js installed on system):
@@ -80,7 +90,7 @@ If it returns the following response and you have docker installed:
 ```
 Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?
 ```
-Try the following command:
+Try the following command before trying `docker compose up` again:
 ```
 sudo service docker start
 ```
