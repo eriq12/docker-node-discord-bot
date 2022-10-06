@@ -5,23 +5,23 @@ const MAX_OPTIONS = 4;
 const mysql = require('mysql');
 
 // environement variables required
-const {SQL_USER, SQL_PASS, SQL_DATABASE, SQL_POLL_TABLE, SQL_VOTE_TABLE} = process.env;
+const {MYSQL_USER, MYSQL_PASS, MYSQL_DATABASE, MYSQL_POLL_TABLE, MYSQL_VOTE_TABLE} = process.env;
 
 // check for environment variables
 (() => {
-    if(SQL_USER === undefined ||
-        SQL_PASS === undefined ||
-        SQL_DATABASE === undefined ||
-        SQL_POLL_TABLE === undefined ||
-        SQL_VOTE_TABLE === undefined){
-        throw 'Environment variables SQL_USER, SQL_PASS, SQL_DATABASE, SQL_POLL_TABLE, or SQL_VOTE_TABLE undefined.';
+    if(MYSQL_USER == null ||
+        MYSQL_PASS == null ||
+        MYSQL_DATABASE == null ||
+        MYSQL_POLL_TABLE == null ||
+        MYSQL_VOTE_TABLE == null){
+        throw `Environment variables MYSQL_USER (${MYSQL_USER}), MYSQL_PASS (${MYSQL_PASS}), MYSQL_DATABASE (${MYSQL_DATABASE}), MYSQL_POLL_TABLE (${MYSQL_POLL_TABLE}), or MYSQL_VOTE_TABLE (${MYSQL_VOTE_TABLE}) undefined.`;
     }
 })();
 
 // the preset queries to create the tables
 
 // should probably in the future scale this with MAX_OPTIONS, but given how I have my discord command, leaving as is.
-const q_create_polls_table = `CREATE TABLE IF NOT EXISTS ${SQL_POLL_TABLE} (
+const q_create_polls_table = `CREATE TABLE IF NOT EXISTS ${MYSQL_POLL_TABLE} (
     poll_name varchar(50) NOT NULL,
     guild_id varchar(50) NOT NULL,
     poll_guild_hash varchar(64) NOT NULL,
@@ -32,7 +32,7 @@ const q_create_polls_table = `CREATE TABLE IF NOT EXISTS ${SQL_POLL_TABLE} (
     PRIMARY KEY (poll_guild_hash)
 );`;
 
-const q_create_votes_table = `CREATE TABLE IF NOT EXISTS ${SQL_VOTE_TABLE} (
+const q_create_votes_table = `CREATE TABLE IF NOT EXISTS ${MYSQL_VOTE_TABLE} (
     user_id varchar(50) NOT NULL,
     poll_guild_hash varchar(64) NOT NULL,
     user_poll_guild_hash varchar(64) NOT NULL,
@@ -53,9 +53,9 @@ function ComputeSHA256(text){
 var pool = mysql.createPool({
     host: 'database',
     port: 3306,
-    user: SQL_USER,
-    password: SQL_PASS,
-    database: SQL_DATABASE
+    user: MYSQL_USER,
+    password: MYSQL_PASS,
+    database: MYSQL_DATABASE
 });
 
 /**
@@ -131,7 +131,8 @@ async function GetPoll(poll_name, guild_id) {
     //console.log(`Poll Name: ${poll_name}\nGuild ID: ${guild_id}\nHash: ${hash}`);
     // check database
     return await UsePooledConnectionAsync(async connection => {
-        const results = await Query(connection, `SELECT * FROM ${SQL_POLL_TABLE} WHERE poll_guild_hash = \'${hash}\';`);
+        // isolate selection to just option names, as we already have the other data
+        const results = await Query(connection, `SELECT option_name_0, option_name_1, option_name_2, option_name_3 FROM ${MYSQL_POLL_TABLE} WHERE poll_guild_hash = \'${hash}\';`);
         if( results == null || results.length === 0 ) {
             return null;
         }
@@ -145,10 +146,10 @@ async function GetPoll(poll_name, guild_id) {
             }
             optionNames.push(option_name);
         }
-        poll = new PollData(guild_id, result.name, hash, optionNames);
+        poll = new PollData(guild_id, poll_name, hash, optionNames);
         // fill out poll if poll
         if( poll ){
-            const votes = await Query(connection, `SELECT * FROM ${SQL_VOTE_TABLE} WHERE poll_guild_hash=\'${hash}\';`);
+            const votes = await Query(connection, `SELECT user_id, vote_option FROM ${MYSQL_VOTE_TABLE} WHERE poll_guild_hash=\'${hash}\';`);
             for( const vote of votes ){
                 poll.add_tally(vote.user_id, vote.vote_option);
             }
@@ -176,7 +177,7 @@ async function RegisterPollVote(guild_id, poll_name, user_id, vote_option) {
     // if valid input, update to database
     const poll_guild_hash = ComputeSHA256(poll_name+guild_id);
     const user_poll_guild_hash = ComputeSHA256(user_id+poll_guild_hash);
-    let query_vote = `INSERT INTO ${SQL_VOTE_TABLE} (user_id, poll_guild_hash, user_poll_guild_hash, vote_option) VALUES (\'${user_id}\', \'${poll_guild_hash}\', \'${user_poll_guild_hash})\', ${vote_option}) ON DUPLICATE KEY UPDATE vote_option = ${vote_option};`  
+    let query_vote = `INSERT INTO ${MYSQL_VOTE_TABLE} (user_id, poll_guild_hash, user_poll_guild_hash, vote_option) VALUES (\'${user_id}\', \'${poll_guild_hash}\', \'${user_poll_guild_hash})\', ${vote_option}) ON DUPLICATE KEY UPDATE vote_option = ${vote_option};`  
     // no need to wait for response, just updating backend database
     UsePooledConnectionAsync( async connection => {
         await Query(connection, query_vote);
@@ -201,14 +202,14 @@ async function CreatePoll(guild_id, poll_name, option_names){
     }
     // cache miss => check database
     const hash = ComputeSHA256(poll_name+guild_id);
-    // query if poll is in database
-    let q_poll_exist = `SELECT * FROM ${SQL_POLL_TABLE} WHERE poll_guild_hash = \'${hash}\';`;
+    // query if poll is in database, no need to actually get columns, just having 1 per row/entry is enough
+    let q_poll_exist = `SELECT 1 FROM ${MYSQL_POLL_TABLE} WHERE poll_guild_hash = \'${hash}\';`;
     // input to create poll in database
     // parameters
     let q_param = `(poll_name, guild_id, poll_guild_hash, option_name_${Array.from(option_names.keys()).join(', option_name_')})`;
     // values
     let q_values = `(\'${poll_name}\', \'${guild_id}\', \'${hash}\', \'${option_names.join('\', \'')}\')`;
-    let q_poll_create = `INSERT IGNORE INTO ${SQL_POLL_TABLE} ${q_param} VALUES ${q_values};`;
+    let q_poll_create = `INSERT IGNORE INTO ${MYSQL_POLL_TABLE} ${q_param} VALUES ${q_values};`;
     return await UsePooledConnectionAsync(async connection => {
         const poll_query_results = await Query(connection, q_poll_exist);
         if(poll_query_results && poll_query_results.length > 0){

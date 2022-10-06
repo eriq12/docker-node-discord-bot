@@ -56,9 +56,7 @@ typings/
 
 # dotenv environment variables file
 .env
-sql.env
-webserver.env
-discordbot.env
+*.env
 
 # next.js build output
 .next
