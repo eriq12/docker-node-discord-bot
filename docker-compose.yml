@@ -10,6 +10,17 @@ services:
     command: npm run start:dev
     ports:
       - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DEBUG: nodejs-docker-express:*
+  backend:
+    container_name: backend
+    build:
+      context: ./backend
+      target: dev
+    volumes:
+      - ./backend/:/src
+    command: npm run start:dev
     env_file:
       - ./sql_user.env
       - ./sql_db.env

@@ -1,7 +1,7 @@
 // libraries
 const fs = require('node:fs');
 const axios = require('axios');
-const pollServer = "http://website:3000";
+const pollServer = "http://backend:3000";
 
 // most follows the guide provided in the link provided:
 // https://discordjs.guide/creating-your-bot/

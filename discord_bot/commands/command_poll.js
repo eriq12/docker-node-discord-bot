@@ -4,7 +4,7 @@ const { SlashCommandBuilder, ActionRowBuilder, SelectMenuBuilder, EmbedBuilder }
 const axios = require('axios');
 const instance = axios.create();
 instance.defaults.timeout = 10000;
-const pollServer = "http://website:3000";
+const pollServer = "http://backend:3000";
 
 const name = 'poll';
 const optionValueNames = ['first-option', 'second-option', 'third-option', 'fourth-option'];
@@ -130,13 +130,13 @@ async function action(interaction) {
         await instance.get(`${pollServer}/poll/results?id=${pollName}&guild_id=${guild_id}`)
             .then(function(response){
                 const poll_data = response.data;
-                console.log(poll_data);
+                //console.log(poll_data);
                 const fields = Array.from(
                     poll_data.poll_option_names, 
                     (element, index) =>
                         ({ name: element, value: String(poll_data.poll_results[index])})
                 );
-                console.log(fields);
+                //console.log(fields);
                 const poll_results_embed = new EmbedBuilder()
                     .setTitle(poll_data.poll_name)
                     .addFields(fields);
