@@ -84,7 +84,7 @@ async function action(interaction) {
             }
         }
         response_msg.content = "Unable to access poll servers.";
-        await axios.post(`${pollServer}/poll/create`, { guild_id:guild_id, poll_name: pollName, option_names: pollOptions})
+        await instance.post(`${pollServer}/poll/create`, { guild_id:guild_id, poll_name: pollName, option_names: pollOptions})
             .then(function (response) {
                 response_msg.content = `Poll created of name ${pollName}`
             })

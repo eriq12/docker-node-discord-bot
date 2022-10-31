@@ -114,6 +114,20 @@ const polls_cache = new Map();
 // helper methods
 
 /**
+ * helper method to get all names of poll in server
+ * @param {*} guild_id id of the guild to check for polls
+ * @returns a list of polls within the guild specified
+ */
+async function GetPollNames(guild_id){
+    if(guild_id == null) return [];
+    return await UsePooledConnectionAsync(async connection => {
+        const results = await Query(connection, `SELECT poll_name FROM ${MYSQL_POLL_TABLE} WHERE guild_id = \'${guild_id}\'`);
+        console.log(JSON.stringify(results));
+        return results;
+    });
+}
+
+/**
  * helper method to get poll (will check cache then database if cache miss)
  * @param {*} poll_name name of the poll
  * @param {*} guild_id id of the associated guild of the poll
@@ -221,4 +235,4 @@ async function CreatePoll(guild_id, poll_name, option_names){
     });
 }
 
-module.exports = {GetPoll, RegisterPollVote, CreatePoll};
+module.exports = {GetPollNames, GetPoll, RegisterPollVote, CreatePoll};
