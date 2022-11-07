@@ -2,11 +2,54 @@
 var express = require('express');
 var router = express.Router();
 // code to handle the mysql connections to reduce clutter
-const { GetPoll, RegisterPollVote, CreatePoll } = require('./sql_poll');
+const { GetPollNames, GetPoll, RegisterPollVote, CreatePoll } = require('./sql_poll');
 
 // base connection (should not be accessed)
 router.get('/', function( req, res ) {
     res.send('Welcome to the poll area, you are not in the right place.');
+});
+
+/**
+ * Route to get the ongoing polls in a given server
+ * input: through query in a get request
+ *      params (required)
+ *          ?guild_id -> id of the guild to see associated polls
+ * output: json format
+ *      fields:
+ *          success -> if there is a query hit (if the server has polls)
+ *          poll_names -> an array of the poll names
+ */
+router.get('/get_polls', async function ( req, res ) {
+    // get params
+    const guild_id = req.query.guild_id;
+    if(guild_id == null){
+        res.sendStatus(404);
+    }
+    (async ()=> {
+        try{
+            const poll_names = await GetPollNames(guild_id);
+            const has_polls = (poll_names.length)?poll_names.length > 0:false;
+            res.setHeader('Content-Type', 'application/json');
+            if(has_polls){
+                res.status(200).end(JSON.stringify(
+                    {
+                        success: true,
+                        poll_names: Array.from(poll_names, (v,i) => (v.poll_name))
+                    }, null, 3
+                ));
+            } else {
+                res.status(400).end(JSON.stringify(
+                    {
+                        success: false,
+                        poll_names: []
+                    }, null, 3
+                ));
+            }
+        } catch (err) {
+            console.log(`ERROR: ${err}`);
+            res.sendStatus(500);
+        }
+    })();
 });
 
 /**

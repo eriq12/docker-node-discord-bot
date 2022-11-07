@@ -1,0 +1,16 @@
+extends layout 
+
+block headder
+    script(src="https://cdn.jsdelivr.net/npm/chart.js")
+    script(src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js")
+    script(src=script)
+
+block content 
+    h1=title
+    p=body
+    select#poll_select(onchange="UpdateChart()")
+        each val in poll_names
+            option(value=val) #{val}
+    br
+    div#guild_id_holder(value=guild_id)
+        canvas#poll_graph_display(style="width:100%;max-height:700px")
