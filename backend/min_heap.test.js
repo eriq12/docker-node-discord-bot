@@ -1,5 +1,7 @@
 const {MinHeap} = require("./src/storage_data_structures/min_heap");
 
+// simple actions test
+
 test("Assert that the helpers to get the indexes are correct", () => {
     expect(MinHeap.GetLeftChildIndex(0)).toBe(1);
     expect(MinHeap.GetRightChildIndex(0)).toBe(2);
@@ -26,6 +28,27 @@ test("Capacity test: Push to a min heap of capacity 3, fourth unique item add (a
     expect(cap_3_heap.add(3, 1)).toBe(true);
     expect(cap_3_heap.add(4, 1)).toBe(false);
 });
+
+test("Replace Test: Push one to min heap, then replace. the old should not exist and the new should", () => {
+    let test_heap = new MinHeap(1);
+    let old_key = "old";
+    let old_priority = 1;
+    let new_key = "new";
+    let new_priority = 1;
+    test_heap.add(old_key, old_priority);
+    expect(test_heap.hasKey(old_key)).toBe(true);
+    expect(test_heap.add(new_key, new_priority)).toBe(false);
+    expect(test_heap.hasKey(old_key)).toBe(true);
+    expect(test_heap.hasKey(new_key)).toBe(false);
+    expect(test_heap.replace(new_key, new_priority)).toBe(old_key);
+    expect(test_heap.hasKey(old_key)).toBe(false);
+    expect(test_heap.hasKey(new_key)).toBe(true);
+    expect(test_heap.pop()).toBe(new_key);
+    expect(test_heap.hasKey(new_key)).toBe(false);
+    expect(test_heap.hasKey(old_key)).toBe(false);
+});
+
+// order tests
 
 test("Shifting add test: Push to a min heap of sufficient capacity, then push another of lower priority to heap, that new key should be returned upon pop",() => {
     // setup
@@ -69,6 +92,8 @@ test("Long shifting add test: push to a min heap of sufficient capacity for at l
         expect(heap.pop()).toBe(i);
     }
 });
+
+// update tests
 
 test("Test update, have a regular list, though the second element has a much larger element", () => {
     let size = 10;
