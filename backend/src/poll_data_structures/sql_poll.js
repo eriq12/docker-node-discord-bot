@@ -38,7 +38,7 @@ const q_create_votes_table = `CREATE TABLE IF NOT EXISTS ${MYSQL_VOTE_TABLE} (
     user_poll_guild_hash varchar(64) NOT NULL,
     vote_option int NOT NULL,
     PRIMARY KEY (user_poll_guild_hash),
-    FOREIGN KEY (poll_guild_hash) REFERENCES polls(poll_guild_hash)
+    FOREIGN KEY (poll_guild_hash) REFERENCES ${MYSQL_POLL_TABLE}(poll_guild_hash)
 );`;
 
 // source for hashing https://stackoverflow.com/questions/27970431/using-sha-256-with-nodejs-crypto

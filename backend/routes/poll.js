@@ -2,7 +2,7 @@
 var express = require('express');
 var router = express.Router();
 // code to handle the mysql connections to reduce clutter
-const { GetPollNames, GetPoll, RegisterPollVote, CreatePoll } = require('./sql_poll');
+const { GetPollNames, GetPoll, RegisterPollVote, CreatePoll } = require('../src//poll_data_structures/sql_poll');
 
 // base connection (should not be accessed)
 router.get('/', function( req, res ) {
