@@ -1,4 +1,3 @@
-const DEBUG = false;
 /**
  * Design
  * Purpose:
@@ -22,12 +21,18 @@ class MinHeap {
     #heap;
     #max_capacity;
     #datamap;
-    constructor(maxCapacity){
+    #amount_elements;
+    #debug;
+
+    constructor(maxCapacity, debug=false){
         // data heap
-        this.#heap = new Array();
+        this.#heap = Array(maxCapacity).fill(null);
         this.#max_capacity = maxCapacity;
+        this.#amount_elements = 0;
         // map
         this.#datamap = new Map();
+        // debug
+        this.#debug = debug
     }
 
     /**
@@ -46,19 +51,22 @@ class MinHeap {
      * @return {*} if the key and value successfully were added to heap
      */
     add(key, value){
-        DEBUG_LOG(`Attempting to add key \"${key}\" of priority ${value}.`);
+        this.#DEBUG_LOG(`Attempting to add key \"${key}\" of priority ${value}.`);
         if(this.isFull() || this.hasKey(key)){
-            DEBUG_LOG("Adding failed.");
+            this.#DEBUG_LOG("Adding failed.");
             return false;
         }
-        DEBUG_LOG(`Adding \"${key}\" to heap.`);
+        this.#DEBUG_LOG(`Adding \"${key}\" to heap.`);
+        // index of the new node
+        let new_node_index = this.#amount_elements
+        this.#amount_elements = this.#amount_elements + 1
         // add to heap
-        this.#heap.push(new HeapNode(key, value));
+        this.#heap[new_node_index] = new HeapNode(key, value);
         // add to datamap
-        this.#datamap.set(key, this.#heap.length-1);
+        this.#datamap.set(key, new_node_index);
         // stabilize position
-        this.#floatHeap(this.#heap.length-1);
-        DEBUG_LOG("Add complete")
+        this.#floatHeap(new_node_index);
+        this.#DEBUG_LOG("Add complete")
         return true;
     }
 
@@ -67,22 +75,23 @@ class MinHeap {
      * @return {HeapNode} a data structure that contains the key and priority associated with the key
      */
     pop(){
-        DEBUG_LOG("Attempting to pop from heap.");
+        this.#DEBUG_LOG("Attempting to pop from heap.");
         // check if empty
         if(this.isEmpty()){
-            DEBUG_LOG("Pop failed.");
+            this.#DEBUG_LOG("Pop failed.");
             return null;
         }
         // take root out and replace with end
         let result = this.#heap[0].getKey();
-        this.#swap(0, this.#heap.length-1);
-        this.#heap.pop();
+        this.#amount_elements = this.#amount_elements - 1
+        this.#swap(0, this.#amount_elements);
+        this.#heap[this.#amount_elements] = null;
         // remove from datamap
         this.#datamap.delete(result);
-        DEBUG_LOG(`Popped \"${result}\" from heap.`);
+        this.#DEBUG_LOG(`Popped \"${result}\" from heap.`);
 
         // if there are other nodes sink
-        if(this.#heap.length > 1){
+        if(this.#amount_elements > 1){
             // move the node to a stable position
             this.#sinkHeap(0);
         }
@@ -96,7 +105,9 @@ class MinHeap {
      * @return {*} the key of the root node
      */
     replace(key, value){
+        this.#DEBUG_LOG(`Attempting to replace top adding key \"${key}\" of priority ${value}.`);
         if(key == null){
+            this.#DEBUG_LOG("Replace failed.")
             return null;
         }
         // take root
@@ -105,7 +116,7 @@ class MinHeap {
         this.#datamap.delete(result.getKey());
         // replace root with new key and value
         this.#heap[0] = new HeapNode(key, 0);
-        this.#datamap.set(key, value);
+        this.#datamap.set(key, 0);
         // stabilize position of node
         this.#sinkHeap(0);
         return result.getKey();
@@ -122,6 +133,11 @@ class MinHeap {
             return;
         }
         let index = this.#datamap.get(key);
+        this.#DEBUG_LOG(`Updating key \"${key}\", located at index ${index} by delta ${valueChange}`);
+        if(index >= this.#amount_elements){
+            this.#DEBUG_LOG("Invalid index, update failed.");
+            return;
+        }
         // updates value of node
         this.#heap[index].modifyValue(valueChange);
         // float or sink depending on change
@@ -138,12 +154,12 @@ class MinHeap {
      * @param {*} index start point
      */
     #sinkHeap(index){
-        DEBUG_LOG("Sinking node to proper position...");
+        this.#DEBUG_LOG("Sinking node to proper position...");
         let current_index = index;
         while(current_index >= 0){
             current_index = this.#stabilize(current_index);
         }
-        DEBUG_LOG("Sinking node complete.");
+        this.#DEBUG_LOG("Sinking node complete.");
     }
 
     /**
@@ -151,7 +167,7 @@ class MinHeap {
      * @param {*} index start point
      */
     #floatHeap(index){
-        DEBUG_LOG("Floating node to proper position...");
+        this.#DEBUG_LOG("Floating node to proper position...");
         let current_index = MinHeap.GetParentIndex(index);
         while(current_index >= 0){
             if(this.#stabilize(current_index) < 0){
@@ -159,7 +175,7 @@ class MinHeap {
             }
             current_index = MinHeap.GetParentIndex(current_index);
         }
-        DEBUG_LOG("Floating node complete.");
+        this.#DEBUG_LOG("Floating node complete.");
     }
 
     /**
@@ -168,10 +184,13 @@ class MinHeap {
      * @return {*} the index of what child that was swapped with the parent
      */
     #stabilize(index){
-        DEBUG_LOG(`Stabilizing at parent index ${index} (${this.#heap[index].getValue()})`);
+        if(this.#heap[index] == null){
+            return -1;
+        }
+        this.#DEBUG_LOG(`Stabilizing at parent index ${index} (${this.#heap[index].getValue()})`);
         // get lowest of children
         let lowestChildIndex = this.#getLowestChildIndex(index);
-        DEBUG_LOG(`Found lowest child index ${lowestChildIndex}`);
+        this.#DEBUG_LOG(`Found lowest child index ${lowestChildIndex}`);
         // if no child or if state is stable, return -1
         if(lowestChildIndex == -1 || this.#heap[index].getValue() <= this.#heap[lowestChildIndex].getValue()){
             return -1;
@@ -190,11 +209,11 @@ class MinHeap {
         // hold the one to compare and swap
         let child_index = MinHeap.GetLeftChildIndex(index);
         // check if the child exists, else return -1
-        if(child_index >= this.#heap.length){
+        if(child_index >= this.#amount_elements){
             return -1;
         }
         // check if right child exists, if not just return left child index
-        if(child_index+1 >= this.#heap.length){
+        if(child_index+1 >= this.#amount_elements){
             return child_index;
         }
         // if left is greater than right, change return to right child index
@@ -223,7 +242,7 @@ class MinHeap {
         // swap the indexes in map
         this.#datamap.set(key_one, index_two);
         this.#datamap.set(key_two, index_one);
-        DEBUG_LOG(`Swapped data between places ${index_one} (${key_one}) and ${index_two} (${key_two})`);
+        this.#DEBUG_LOG(`Swapped data between places ${index_one} (${key_one}) and ${index_two} (${key_two})`);
     }
 
     /**
@@ -231,7 +250,7 @@ class MinHeap {
      * @return {*} true if heap is to capacity, false otherwise
      */
     isFull(){
-        return (this.#heap.length >= this.#max_capacity);
+        return (this.#amount_elements >= this.#max_capacity);
     }
 
     /**
@@ -239,7 +258,7 @@ class MinHeap {
      * @return {*} true if heap is empty, false otherwise
      */
     isEmpty(){
-        return this.#heap.length <= 0;
+        return this.#amount_elements <= 0;
     }
 
     // index helper methods
@@ -275,7 +294,13 @@ class MinHeap {
     }
 
     toString(){
-        return this.#heap.toString();
+        return `Heap: ${this.#heap.toString()}, `;
+    }
+
+    #DEBUG_LOG(output){
+        if(this.#debug){
+            console.debug(output);
+        }
     }
 }
 
@@ -343,12 +368,6 @@ class HeapNode {
 
     toString(){
         return `\"${this.#key}\" (${this.#value})`;
-    }
-}
-
-function DEBUG_LOG(output){
-    if(DEBUG){
-        console.log(output);
     }
 }
 
