@@ -55,7 +55,7 @@ the cases when coping over the desired variable values, for example the Discord 
     * Within settings the server, the ID can be found in the Widget category, listed as SERVER ID.
 
 
-#### full container
+#### full containers
 * ./discordbot.env
   * DISCORD_TOKEN
   * CLIENT_ID
@@ -75,6 +75,8 @@ the cases when coping over the desired variable values, for example the Discord 
     * The username for the user that the webserver will use.
   * MYSQL_PASS
     * The password for the user that the webserver will use.
+  * CACHE_SIZE
+    * The total amount of polls that the webserver will hold at a time before removing from memory.
 ## How to run:
 ### Register commands
 To have the current commands registered on your Discord server (as I do not have the commands registered globally) you will need to execute the following line when within the discord_bot directory (requires node.js installed on system):
