@@ -1,11 +1,12 @@
 // libraries
 const { PollData } = require('./poll_data.js');
+const { CacheMap } = require("../storage_data_structures/cache_map");
 const { createHash } = require('crypto');
 const MAX_OPTIONS = 4;
 const mysql = require('mysql');
 
 // environement variables required
-const {MYSQL_USER, MYSQL_PASS, MYSQL_DATABASE, MYSQL_POLL_TABLE, MYSQL_VOTE_TABLE} = process.env;
+const {MYSQL_USER, MYSQL_PASS, MYSQL_DATABASE, MYSQL_POLL_TABLE, MYSQL_VOTE_TABLE, CACHE_SIZE} = process.env;
 
 // check for environment variables
 (() => {
@@ -13,8 +14,9 @@ const {MYSQL_USER, MYSQL_PASS, MYSQL_DATABASE, MYSQL_POLL_TABLE, MYSQL_VOTE_TABL
         MYSQL_PASS == null ||
         MYSQL_DATABASE == null ||
         MYSQL_POLL_TABLE == null ||
-        MYSQL_VOTE_TABLE == null){
-        throw `Environment variables MYSQL_USER (${MYSQL_USER}), MYSQL_PASS (${MYSQL_PASS}), MYSQL_DATABASE (${MYSQL_DATABASE}), MYSQL_POLL_TABLE (${MYSQL_POLL_TABLE}), or MYSQL_VOTE_TABLE (${MYSQL_VOTE_TABLE}) undefined.`;
+        MYSQL_VOTE_TABLE == null ||
+        isNaN(CACHE_SIZE)){
+        throw `Environment variables MYSQL_USER (${MYSQL_USER}), MYSQL_PASS (${MYSQL_PASS}), MYSQL_DATABASE (${MYSQL_DATABASE}), MYSQL_POLL_TABLE (${MYSQL_POLL_TABLE}), MYSQL_VOTE_TABLE (${MYSQL_VOTE_TABLE}), or CACHE_SIZE (${CACHE_SIZE}) undefined.`;
     }
 })();
 
@@ -109,7 +111,7 @@ async function Query(connection, query_prompt){
 // map to hold the polls
 // key: a tuple of (poll_name, guild_id)
 // value: a poll_data object containing poll data
-const polls_cache = new Map();
+const polls_cache = new CacheMap(CACHE_SIZE);
 
 // helper methods
 
